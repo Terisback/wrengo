@@ -46,12 +46,57 @@ func (i ErrorType) String() string {
 }
 
 type Callbacks struct {
+
+	// The callback Wren uses to display text when `System.print()`
+	// or the other related functions are called.
+	//
+	// If this is `NULL`, Wrengo by default writes into Stdout.
 	WriteFunc func(vm *VM, text string)
+
+	// The callback Wren uses to report errors.
+	//
+	// When an error occurs, this will be called with the module name, line
+	// number, and an error message. If this is `NULL`,
+	// Wrengo by default writes errors into Stdout.
 	ErrorFunc func(vm *VM, errorType ErrorType, module string, line int, message string)
 }
 
 type Configuration struct {
 	Callbacks
+
+	// The number of bytes Wren will allocate before triggering the first garbage
+	// collection.
+	//
+	// If zero, defaults to 10MB.
+	InitialHeapSize uint
+
+	// After a collection occurs, the threshold for the next collection is
+	// determined based on the number of bytes remaining in use. This allows Wren
+	// to shrink its memory usage automatically after reclaiming a large amount
+	// of memory.
+	//
+	// This can be used to ensure that the heap does not get too small, which can
+	// in turn lead to a large number of collections afterwards as the heap grows
+	// back to a usable size.
+	//
+	// If zero, defaults to 1MB.
+	MinHeapSize uint
+
+	// Wren will resize the heap automatically as the number of bytes
+	// remaining in use after a collection changes. This number determines the
+	// amount of additional memory Wren will use after a collection, as a
+	// percentage of the current heap size.
+	//
+	// For example, say that this is 50. After a garbage collection, when there
+	// are 400 bytes of memory still in use, the next collection will be triggered
+	// after a total of 600 bytes are allocated (including the 400 already in
+	// use.)
+	//
+	// Setting this to a smaller number wastes less memory, but triggers more
+	// frequent garbage collections.
+	//
+	// If zero, defaults to 50.
+	HeapGrowthPercent int
 
 	config *C.WrenConfiguration
 }
@@ -69,13 +114,22 @@ func NewConfiguration() Configuration {
 	return cfg
 }
 
+// A single virtual machine for executing Wren code.
+//
+// Wren has no global state, so all state stored by a running interpreter lives
+// here.
 type VM struct {
 	cb Callbacks
 
 	vm *C.WrenVM
 }
 
+// Creates a new Wren virtual machine using the given [configuration].
 func NewVM(cfg Configuration) VM {
+	cfg.config.initialHeapSize = C.size_t(cfg.InitialHeapSize)
+	cfg.config.minHeapSize = C.size_t(cfg.MinHeapSize)
+	cfg.config.heapGrowthPercent = C.int(cfg.HeapGrowthPercent)
+
 	cfg.config.writeFn = C.WrenWriteFn(C.wrengoWrite)
 	cfg.config.errorFn = C.WrenErrorFn(C.wrengoError)
 
@@ -90,14 +144,10 @@ func NewVM(cfg Configuration) VM {
 	return vm
 }
 
+// Runs [source], a string of Wren source code in a new fiber in VM in the
+// context of resolved [module].
 func (vm *VM) Interpret(module, source string) InterpretResult {
 	return InterpretResult(C.wrenInterpret((*vm).vm, C.CString(module), C.CString(source)))
-}
-
-func main() {
-	config := NewConfiguration()
-	vm := NewVM(config)
-	fmt.Println(vm.Interpret("my_module", "System.print(\"I am running in a VM!\")").String())
 }
 
 //export wrengoWrite
@@ -108,4 +158,10 @@ func wrengoWrite(vm *C.WrenVM, text *C.char) {
 //export wrengoError
 func wrengoError(vm *C.WrenVM, err C.WrenErrorType, module *C.char, line C.int, message *C.char) {
 	vmMap[vm].cb.ErrorFunc(vmMap[vm], ErrorType(err), C.GoString(module), int(line), C.GoString(message))
+}
+
+func main() {
+	config := NewConfiguration()
+	vm := NewVM(config)
+	fmt.Println(vm.Interpret("my_module", "System.print(\"I am running in a VM!\")"))
 }

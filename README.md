@@ -1,4 +1,4 @@
-# wrengo
+# Wrengo
 
 Binding for Wren scripting language
 
