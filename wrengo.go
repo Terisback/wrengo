@@ -16,19 +16,39 @@ const (
 	RESULT_RUNTIME_ERROR
 )
 
+func (i InterpretResult) String() string {
+	switch i {
+	case RESULT_SUCCESS:
+		return "RESULT_SUCCESS"
+	case RESULT_COMPILE_ERROR:
+		return "RESULT_COMPILE_ERROR"
+	case RESULT_RUNTIME_ERROR:
+		return "RESULT_RUNTIME_ERROR"
+	default:
+		return ""
+	}
+}
+
+type VM struct {
+	wren *C.WrenVM
+}
+
+func NewVM(config *C.WrenConfiguration) VM {
+	vm := VM{}
+	vm.wren = C.wrenNewVM(config)
+	return vm
+}
+
+func (vm VM) Interpret(module, source string) InterpretResult {
+	m, s := C.CString(module), C.CString(source)
+	result := C.wrenInterpret(vm.wren, m, s)
+	return InterpretResult(result)
+}
+
 func main() {
 	config := C.WrenConfiguration{}
 	C.wrenInitConfiguration(&config)
-	vm := C.wrenNewVM(&config)
-	module := C.CString("my_module")
-	code := C.CString("System.print(\"I am running in a VM!\")")
-	result := C.wrenInterpret(vm, module, code)
-	switch InterpretResult(result) {
-	case RESULT_SUCCESS:
-		fmt.Println("RESULT_SUCCESS")
-	case RESULT_COMPILE_ERROR:
-		fmt.Println("RESULT_COMPILE_ERROR")
-	case RESULT_RUNTIME_ERROR:
-		fmt.Println("RESULT_RUNTIME_ERROR")
-	}
+	vm := NewVM(&config)
+
+	fmt.Println(vm.Interpret("my_module", "System.print(\"I am running in a VM!\")").String())
 }
