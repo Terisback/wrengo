@@ -41,8 +41,9 @@ func NewVM(config *C.WrenConfiguration) VM {
 
 func (vm VM) Interpret(module, source string) InterpretResult {
 	m, s := C.CString(module), C.CString(source)
-	result := C.wrenInterpret(vm.wren, m, s)
-	return InterpretResult(result)
+	defer C.free(unsafe.Pointer(m))
+	defer C.free(unsafe.Pointer(s))
+	return InterpretResult(C.wrenInterpret(vm.wren, m, s))
 }
 
 func main() {
