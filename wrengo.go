@@ -1,4 +1,4 @@
-package main
+package wrengo
 
 /*
 #include "wren.h"
@@ -158,10 +158,4 @@ func wrengoWrite(vm *C.WrenVM, text *C.char) {
 //export wrengoError
 func wrengoError(vm *C.WrenVM, err C.WrenErrorType, module *C.char, line C.int, message *C.char) {
 	vmMap[vm].cb.ErrorFunc(vmMap[vm], ErrorType(err), C.GoString(module), int(line), C.GoString(message))
-}
-
-func main() {
-	config := NewConfiguration()
-	vm := NewVM(config)
-	fmt.Println(vm.Interpret("my_module", "System.print(\"I am running in a VM!\")"))
 }
