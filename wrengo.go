@@ -150,7 +150,7 @@ func (vm *VM) GC() {
 // Runs [source], a string of Wren source code in a new fiber in VM in the
 // context of resolved [module].
 func (vm *VM) Interpret(module, source string) InterpretResult {
-	return InterpretResult(C.wrenInterpret((*vm).vm, C.CString(module), C.CString(source)))
+	return InterpretResult(C.wrenInterpret(vm.vm, C.CString(module), C.CString(source)))
 }
 
 func defaultWrite(vm *VM, text string) {
