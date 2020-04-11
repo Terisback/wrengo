@@ -14,18 +14,13 @@ func main() {
 	vm := wrengo.NewVM(config)
 	defer vm.FreeVM()
 
-	fmt.Println("Ready! Print \"quit\" or Ctrl+C for exit.")
+	fmt.Println("Ready! Press Ctrl+C for exit.")
 
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
 		fmt.Print("> ")
 		text, _ := reader.ReadString('\n')
-
-		if text == "quit" {
-			break
-		}
-
-		vm.Interpret("interpret", text+"\n")
+		vm.Interpret("main", text+"\n")
 	}
 }
