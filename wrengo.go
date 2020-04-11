@@ -9,7 +9,6 @@ extern void wrengoError(WrenVM*, WrenErrorType, char*, int, char* );
 import "C"
 import (
 	"fmt"
-	"runtime"
 )
 
 var (
@@ -137,11 +136,14 @@ func NewVM(cfg Configuration) VM {
 	vm.vm = C.wrenNewVM(cfg.config)
 	vm.cb = cfg.Callbacks
 	vmMap[vm.vm] = &vm
-	runtime.SetFinalizer(&vm, func(vm *VM) {
-		C.wrenFreeVM(vm.vm)
-		delete(vmMap, vm.vm)
-	})
 	return vm
+}
+
+// Disposes of all resources is use by [vm], which was previously created by a
+// call to [NewVM].
+func (vm *VM) FreeVM() {
+	C.wrenFreeVM(vm.vm)
+	delete(vmMap, vm.vm)
 }
 
 // Runs [source], a string of Wren source code in a new fiber in VM in the
