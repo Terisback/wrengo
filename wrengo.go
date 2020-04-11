@@ -146,6 +146,11 @@ func (vm *VM) FreeVM() {
 	delete(vmMap, vm.vm)
 }
 
+// Immediately run the garbage collector to free unused memory.
+func (vm *VM) GC() {
+	C.wrenCollectGarbage(vm.vm)
+}
+
 // Runs [source], a string of Wren source code in a new fiber in VM in the
 // context of resolved [module].
 func (vm *VM) Interpret(module, source string) InterpretResult {
