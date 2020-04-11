@@ -158,7 +158,7 @@ func defaultWrite(vm *VM, text string) {
 }
 
 func defaultError(vm *VM, errorType ErrorType, module string, line int, message string) {
-	fmt.Print(fmt.Sprint("\n", errorType.String(), " (", module, ") Line ", line, " : ", message))
+	fmt.Println(fmt.Sprint(errorType.String(), " (", module, ") Line ", line, " : ", message))
 }
 
 //export wrengoWrite
