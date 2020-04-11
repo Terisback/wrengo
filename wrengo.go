@@ -1,6 +1,7 @@
 package wrengo
 
 /*
+#include <stdlib.h>
 #include "wren.h"
 
 extern void wrengoWrite(WrenVM*, char*);
@@ -9,6 +10,8 @@ extern void wrengoError(WrenVM*, WrenErrorType, char*, int, char* );
 import "C"
 import (
 	"fmt"
+	"reflect"
+	"unsafe"
 )
 
 var (
@@ -121,12 +124,237 @@ func (vm *VM) GC() {
 // Runs [source], a string of Wren source code in a new fiber in VM in the
 // context of resolved [module].
 func (vm *VM) Interpret(module, source string) InterpretResult {
-	return InterpretResult(C.wrenInterpret(vm.vm, C.CString(module), C.CString(source)))
+	m, s := C.CString(module), C.CString(source)
+	defer C.free(unsafe.Pointer(m))
+	defer C.free(unsafe.Pointer(s))
+	return InterpretResult(C.wrenInterpret(vm.vm, m, s))
 }
 
+// A handle to a Wren object.
+//
+// This lets code outside of the VM hold a persistent reference to an object.
+// After a handle is acquired, and until it is released, this ensures the
+// garbage collector will not reclaim the object it references.
+type Handle struct {
+	vm     *VM
+	handle *C.WrenHandle
 }
 
+// Creates a handle that can be used to invoke a method with [signature] on
+// using a receiver and arguments that are set up on the stack.
+//
+// This handle can be used repeatedly to directly invoke that method from C
+// code using [Call].
+//
+// When you are done with this handle, it must be released using
+// [ReleaseHandle].
+func (vm *VM) NewCallHandle(signature string) Handle {
+	s := C.CString(signature)
+	defer C.free(unsafe.Pointer(s))
+	return Handle{vm: vm, handle: C.wrenMakeCallHandle(vm.vm, s)}
 }
+
+// Calls method, using the receiver and arguments previously set up on the
+// stack.
+//
+// Method must have been created by a call to [NewCallHandle]. The
+// arguments to the method must be already on the stack. The receiver should be
+// in slot 0 with the remaining arguments following it, in order. It is an
+// error if the number of arguments provided does not match the method's
+// signature.
+//
+// After this returns, you can access the return value from slot 0 on the stack.
+func (h *Handle) Call() InterpretResult {
+	return InterpretResult(C.wrenCall(h.vm.vm, h.handle))
+}
+
+// Releases the reference stored in [handle]. After calling this, [handle] can
+// no longer be used.
+func (h *Handle) Release() {
+	C.wrenReleaseHandle(h.vm.vm, h.handle)
+}
+
+// Returns the number of slots available to the current foreign method.
+func (vm *VM) GetSlotCount() int {
+	return int(C.wrenGetSlotCount(vm.vm))
+}
+
+// Ensures that the foreign method stack has at least [numSlots] available for
+// use, growing the stack if needed.
+//
+// Does not shrink the stack if it has more than enough slots.
+//
+// It is an error to call this from a finalizer.
+func (vm *VM) EnsureSlots(numSlots int) {
+	C.wrenEnsureSlots(vm.vm, C.int(numSlots))
+}
+
+// Gets the type of the object in [slot].
+func (vm *VM) GetSlotType(slot int) WrenType {
+	return WrenType(C.wrenGetSlotType(vm.vm, C.int(slot)))
+}
+
+// Reads a boolean value from [slot].
+//
+// It is an error to call this if the slot does not contain a boolean value.
+func (vm *VM) GetSlotBool(slot int) bool {
+	return bool(C.wrenGetSlotBool(vm.vm, C.int(slot)))
+}
+
+// Reads a byte array from [slot].
+//
+// The memory for the returned string is owned by Wren. You can inspect it
+// while in your foreign method, but cannot keep a pointer to it after the
+// function returns, since the garbage collector may reclaim it.
+//
+// Returns a pointer to the first byte of the array and fill [length] with the
+// number of bytes in the array.
+//
+// It is an error to call this if the slot does not contain a string.
+func (vm *VM) GetSlotBytes(slot, length int) []byte {
+	l := C.int(length)
+	data := C.GoString(C.wrenGetSlotBytes(vm.vm, C.int(slot), &l))
+	return []byte(data)
+}
+
+// Reads a number from [slot].
+//
+// It is an error to call this if the slot does not contain a number.
+func (vm *VM) GetSlotFloat(slot int) float64 {
+	return float64(C.wrenGetSlotDouble(vm.vm, C.int(slot)))
+}
+
+type Foreign struct {
+}
+
+// Reads a foreign object from [slot] and returns a pointer to the foreign data
+// stored with it.
+//
+// It is an error to call this if the slot does not contain an instance of a
+// foreign class.
+func (vm *VM) GetSlotForeign(slot int) Foreign {
+	// TODO
+	fmt.Println(reflect.TypeOf(C.wrenGetSlotForeign(vm.vm, C.int(slot))))
+	return Foreign{}
+}
+
+// Reads a string from [slot].
+//
+// The memory for the returned string is owned by Wren. You can inspect it
+// while in your foreign method, but cannot keep a pointer to it after the
+// function returns, since the garbage collector may reclaim it.
+//
+// It is an error to call this if the slot does not contain a string.
+func (vm *VM) GetSlotString(slot int) string {
+	return C.GoString(C.wrenGetSlotString(vm.vm, C.int(slot)))
+}
+
+// Creates a handle for the value stored in [slot].
+//
+// This will prevent the object that is referred to from being garbage collected
+// until the handle is released by calling [wrenReleaseHandle()].
+func (vm *VM) GetSlotHandle(slot int) Handle {
+	return Handle{vm: vm, handle: C.wrenGetSlotHandle(vm.vm, C.int(slot))}
+}
+
+// Stores the boolean [value] in [slot].
+func (vm *VM) SetSlotBool(slot int, value bool) {
+	C.wrenSetSlotBool(vm.vm, C.int(slot), C.bool(value))
+}
+
+// Stores the array [length] of [bytes] in [slot].
+//
+// The bytes are copied to a new string within Wren's heap, so you can free
+// memory used by them after this is called.
+func (vm *VM) SetSlotBytes(slot int, value []byte) {
+	val := C.CString(string(value))
+	defer C.free(unsafe.Pointer(val))
+	C.wrenSetSlotBytes(vm.vm, C.int(slot), val, C.size_t(len(value)))
+}
+
+// Stores the numeric [value] in [slot].
+func (vm *VM) SetSlotDouble(slot int, value float64) {
+	C.wrenSetSlotDouble(vm.vm, C.int(slot), C.double(value))
+}
+
+// Creates a new instance of the foreign class stored in [classSlot] with [size]
+// bytes of raw storage and places the resulting object in [slot].
+//
+// This does not invoke the foreign class's constructor on the new instance. If
+// you need that to happen, call the constructor from Wren, which will then
+// call the allocator foreign method. In there, call this to create the object
+// and then the constructor will be invoked when the allocator returns.
+//
+// Returns a pointer to the foreign object's data.
+func (vm *VM) SetSlotNewForeign(slot, classSlot int, size uint) {
+	C.wrenSetSlotNewForeign(vm.vm, C.int(slot), C.int(classSlot), C.size_t(size))
+}
+
+// Stores a new empty list in [slot].
+func (vm *VM) SetSlotNewList(slot int) {
+	C.wrenSetSlotNewList(vm.vm, C.int(slot))
+}
+
+// Stores null in [slot].
+func (vm *VM) SetSlotNull(slot int) {
+	C.wrenSetSlotNull(vm.vm, C.int(slot))
+}
+
+// Stores the string [text] in [slot].
+//
+// The [text] is copied to a new string within Wren's heap, so you can free
+// memory used by it after this is called. The length is calculated using
+// [strlen()]. If the string may contain any null bytes in the middle, then you
+// should use [wrenSetSlotBytes()] instead.
+func (vm *VM) SetSlotString(slot int, value string) {
+	val := C.CString(value)
+	defer C.free(unsafe.Pointer(val))
+	C.wrenSetSlotString(vm.vm, C.int(slot), val)
+}
+
+// Stores the value captured in [handle] in [slot].
+//
+// This does not release the handle for the value.
+func (vm *VM) SetSlotHandle(slot int, handle Handle) {
+	C.wrenSetSlotHandle(vm.vm, C.int(slot), handle.handle)
+}
+
+// Returns the number of elements in the list stored in [slot].
+func (vm *VM) GetListCount(slot int) int {
+	return int(C.wrenGetListCount(vm.vm, C.int(slot)))
+}
+
+// Reads element [index] from the list in [listSlot] and stores it in
+// [elementSlot].
+func (vm *VM) GetListElement(listSlot, index, elementSlot int) {
+	C.wrenGetListElement(vm.vm, C.int(listSlot), C.int(index), C.int(elementSlot))
+}
+
+// Takes the value stored at [elementSlot] and inserts it into the list stored
+// at [listSlot] at [index].
+//
+// As in Wren, negative indexes can be used to insert from the end. To append
+// an element, use `-1` for the index.
+func (vm *VM) InsertInList(listSlot, index, elementSlot int) {
+	C.wrenInsertInList(vm.vm, C.int(listSlot), C.int(index), C.int(elementSlot))
+}
+
+// Looks up the top level variable with [name] in resolved [module] and stores
+// it in [slot].
+func (vm *VM) GetVariable(module, name string, slot int) {
+	m, n := C.CString(module), C.CString(name)
+	defer C.free(unsafe.Pointer(m))
+	defer C.free(unsafe.Pointer(n))
+	C.wrenGetVariable(vm.vm, m, n, C.int(slot))
+}
+
+// Sets the current fiber to be aborted, and uses the value in [slot] as the
+// runtime error object.
+func (vm *VM) AbortFiber(slot int) {
+	C.wrenAbortFiber(vm.vm, C.int(slot))
+}
+
+// Default callbacks
 
 //export wrengoWrite
 func wrengoWrite(vm *C.WrenVM, text *C.char) {
