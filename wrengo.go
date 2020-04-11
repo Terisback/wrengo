@@ -104,12 +104,8 @@ func NewConfiguration() Configuration {
 	cfg := Configuration{}
 	cfg.config = &C.WrenConfiguration{}
 	C.wrenInitConfiguration(cfg.config)
-	cfg.WriteFunc = func(vm *VM, text string) {
-		fmt.Print(text)
-	}
-	cfg.ErrorFunc = func(vm *VM, errorType ErrorType, module string, line int, message string) {
-		fmt.Println("Error happend:", errorType.String(), "in", module, "module\n", line, ":", message)
-	}
+	cfg.WriteFunc = defaultWrite
+	cfg.ErrorFunc = defaultError
 	return cfg
 }
 
@@ -155,6 +151,14 @@ func (vm *VM) GC() {
 // context of resolved [module].
 func (vm *VM) Interpret(module, source string) InterpretResult {
 	return InterpretResult(C.wrenInterpret((*vm).vm, C.CString(module), C.CString(source)))
+}
+
+func defaultWrite(vm *VM, text string) {
+	fmt.Print(text)
+}
+
+func defaultError(vm *VM, errorType ErrorType, module string, line int, message string) {
+	fmt.Print(fmt.Sprint("\n", errorType.String(), " (", module, ") Line ", line, " : ", message))
 }
 
 //export wrengoWrite
