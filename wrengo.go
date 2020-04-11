@@ -1,7 +1,6 @@
 package wrengo
 
 /*
-#include <stdlib.h>
 #include "wren.h"
 
 extern void wrengoWrite(WrenVM*, char*);
