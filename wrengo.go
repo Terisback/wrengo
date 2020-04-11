@@ -15,35 +15,6 @@ var (
 	vmMap = make(map[*C.WrenVM]*VM)
 )
 
-type InterpretResult int
-
-const (
-	RESULT_SUCCESS InterpretResult = iota
-	RESULT_COMPILE_ERROR
-	RESULT_RUNTIME_ERROR
-)
-
-func (i InterpretResult) String() string {
-	return [...]string{"RESULT_SUCCESS", "RESULT_COMPILE_ERROR", "RESULT_RUNTIME_ERROR"}[i]
-}
-
-type ErrorType int
-
-const (
-	// A syntax or resolution error detected at compile time.
-	ERROR_COMPILE ErrorType = iota
-
-	// The error message for a runtime error.
-	ERROR_RUNTIME
-
-	// One entry of a runtime error's stack trace.
-	ERROR_STACK_TRACE
-)
-
-func (i ErrorType) String() string {
-	return [...]string{"ERROR_COMPILE", "ERROR_RUNTIME", "ERROR_STACK_TRACE"}[i]
-}
-
 type Callbacks struct {
 
 	// The callback Wren uses to display text when `System.print()`
@@ -153,12 +124,8 @@ func (vm *VM) Interpret(module, source string) InterpretResult {
 	return InterpretResult(C.wrenInterpret(vm.vm, C.CString(module), C.CString(source)))
 }
 
-func defaultWrite(vm *VM, text string) {
-	fmt.Print(text)
 }
 
-func defaultError(vm *VM, errorType ErrorType, module string, line int, message string) {
-	fmt.Println(fmt.Sprint(errorType.String(), " (", module, ") Line ", line, " : ", message))
 }
 
 //export wrengoWrite
