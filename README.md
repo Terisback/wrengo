@@ -2,7 +2,7 @@
 
 Binding for Wren scripting language
 
-## Using
+## Usage
 
 ```go
 package main
