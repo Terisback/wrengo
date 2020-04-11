@@ -3,6 +3,9 @@ package wrengo
 /*
 #include "wren.h"
 
+extern char* wrengoLoadModule(WrenVM*, char*);
+//extern WrenForeignMethodFn wrengoBindForeignMethod(WrenVM*, char*, char*, bool, char*);
+extern WrenForeignClassMethods wrengoBindForeignClass(WrenVM*, char*, char*);
 extern void wrengoWrite(WrenVM*, char*);
 extern void wrengoError(WrenVM*, WrenErrorType, char*, int, char* );
 */
@@ -18,6 +21,41 @@ var (
 )
 
 type Callbacks struct {
+	// The callback Wren uses to load a module.
+	//
+	// Since Wren does not talk directly to the file system, it relies on the
+	// embedder to physically locate and read the source code for a module. The
+	// first time an import appears, Wren will call this and pass in the name of
+	// the module being imported. The VM should return the soure code for that
+	// module. Memory for the source should be allocated using [reallocateFn] and
+	// Wren will take ownership over it.
+	//
+	// This will only be called once for any given module name. Wren caches the
+	// result internally so subsequent imports of the same module will use the
+	// previous source and not call this.
+	//
+	// If a module with the given name could not be found by the embedder, it
+	// should return NULL and Wren will report that as a runtime error.
+	LoadModuleFunc func(vm *VM, name string) string
+
+	// The callback Wren uses to find a foreign method and bind it to a class.
+	//
+	// When a foreign method is declared in a class, this will be called with the
+	// foreign method's module, class, and signature when the class body is
+	// executed. It should return a pointer to the foreign function that will be
+	// bound to that method.
+	//
+	// If the foreign function could not be found, this should return NULL and
+	// Wren will report it as runtime error.
+	BindForeignMethodFunc func(vm *VM, module, className string, isStatic bool, signature string)
+
+	// The callback Wren uses to find a foreign class and get its foreign methods.
+	//
+	// When a foreign class is declared, this will be called with the class's
+	// module and name when the class body is executed. It should return the
+	// foreign functions uses to allocate and (optionally) finalize the bytes
+	// stored in the foreign object when an instance is created.
+	BindForeignClassFunc func(vm *VM, module, className string)
 
 	// The callback Wren uses to display text when `System.print()`
 	// or the other related functions are called.
@@ -77,6 +115,9 @@ func NewConfiguration() Configuration {
 	cfg := Configuration{}
 	cfg.config = &C.WrenConfiguration{}
 	C.wrenInitConfiguration(cfg.config)
+	cfg.LoadModuleFunc = defaultLoadModule
+	//cfg.BindForeignMethodFunc = defaultBindForeignMethod
+	cfg.BindForeignClassFunc = defaultBindForeignClass
 	cfg.WriteFunc = defaultWrite
 	cfg.ErrorFunc = defaultError
 	return cfg
@@ -98,6 +139,9 @@ func NewVM(cfg Configuration) VM {
 	cfg.config.minHeapSize = C.size_t(cfg.MinHeapSize)
 	cfg.config.heapGrowthPercent = C.int(cfg.HeapGrowthPercent)
 
+	cfg.config.loadModuleFn = C.WrenLoadModuleFn(C.wrengoLoadModule)
+	//cfg.config.bindForeignMethodFn = C.WrenBindForeignMethodFn(C.wrengoBindForeignMethod)
+	cfg.config.bindForeignClassFn = C.WrenBindForeignClassFn(C.wrengoBindForeignClass)
 	cfg.config.writeFn = C.WrenWriteFn(C.wrengoWrite)
 	cfg.config.errorFn = C.WrenErrorFn(C.wrengoError)
 
@@ -354,6 +398,25 @@ func (vm *VM) AbortFiber(slot int) {
 }
 
 // Default callbacks
+
+//export wrengoLoadModule
+func wrengoLoadModule(vm *C.WrenVM, name *C.char) *C.char {
+	code := C.CString(vmMap[vm].cb.LoadModuleFunc(vmMap[vm], C.GoString(name)))
+	defer C.free(unsafe.Pointer(code))
+	return code
+}
+
+// //export wrengoBindForeignMethod
+// func wrengoBindForeignMethod(vm *C.WrenVM, module *C.char, className *C.char, isStatic C.bool, signature *C.char) unsafe.Pointer {
+// 	vmMap[vm].cb.BindForeignMethodFunc(vmMap[vm], C.GoString(module), C.GoString(className), bool(isStatic), C.GoString(signature))
+// 	return C.WrenForeignMethodFn{}
+// }
+
+//export wrengoBindForeignClass
+func wrengoBindForeignClass(vm *C.WrenVM, module *C.char, className *C.char) C.WrenForeignClassMethods {
+	vmMap[vm].cb.BindForeignClassFunc(vmMap[vm], C.GoString(module), C.GoString(className))
+	return C.WrenForeignClassMethods{}
+}
 
 //export wrengoWrite
 func wrengoWrite(vm *C.WrenVM, text *C.char) {
