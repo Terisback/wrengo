@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 
 	"github.com/Terisback/wrengo"
 )
@@ -12,10 +14,18 @@ func main() {
 	vm := wrengo.NewVM(config)
 	defer vm.FreeVM()
 
-	// Interpret "Hello World!" in Wren
-	// It will print in console by default
-	result := vm.Interpret("my_module", "System.print(\"Hello World!\")")
+	fmt.Println("Ready! Print \"quit\" or Ctrl+C for exit.")
 
-	// Will output RESULT_SUCCESS if it works
-	fmt.Println(result.String())
+	reader := bufio.NewReader(os.Stdin)
+
+	for {
+		fmt.Print("> ")
+		text, _ := reader.ReadString('\n')
+
+		if text == "quit" {
+			break
+		}
+
+		vm.Interpret("interpret", text+"\n")
+	}
 }
