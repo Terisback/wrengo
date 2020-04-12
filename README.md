@@ -30,8 +30,10 @@ func main() {
 
 ## Current
 
-Only works creating a VM and Interpret
+Works everything, but foreign part. And I doesn't check slots.
 
 ## Todo
 
+- [ ] Create examples for slots
+- [ ] Handle Foreign classes and methods
 - [ ] Make intelligible binding
