@@ -4,7 +4,7 @@ package wrengo
 #include "wren.h"
 
 extern char* wrengoLoadModule(WrenVM*, char*);
-//extern WrenForeignMethodFn wrengoBindForeignMethod(WrenVM*, char*, char*, bool, char*);
+extern void wrengoBindForeignMethod(WrenVM*, char*, char*, bool, char*);
 extern WrenForeignClassMethods wrengoBindForeignClass(WrenVM*, char*, char*);
 extern void wrengoWrite(WrenVM*, char*);
 extern void wrengoError(WrenVM*, WrenErrorType, char*, int, char* );
@@ -116,7 +116,7 @@ func NewConfiguration() Configuration {
 	cfg.config = &C.WrenConfiguration{}
 	C.wrenInitConfiguration(cfg.config)
 	cfg.LoadModuleFunc = defaultLoadModule
-	//cfg.BindForeignMethodFunc = defaultBindForeignMethod
+	cfg.BindForeignMethodFunc = defaultBindForeignMethod
 	cfg.BindForeignClassFunc = defaultBindForeignClass
 	cfg.WriteFunc = defaultWrite
 	cfg.ErrorFunc = defaultError
@@ -140,7 +140,7 @@ func NewVM(cfg Configuration) VM {
 	cfg.config.heapGrowthPercent = C.int(cfg.HeapGrowthPercent)
 
 	cfg.config.loadModuleFn = C.WrenLoadModuleFn(C.wrengoLoadModule)
-	//cfg.config.bindForeignMethodFn = C.WrenBindForeignMethodFn(C.wrengoBindForeignMethod)
+	cfg.config.bindForeignMethodFn = C.WrenBindForeignMethodFn(C.wrengoBindForeignMethod)
 	cfg.config.bindForeignClassFn = C.WrenBindForeignClassFn(C.wrengoBindForeignClass)
 	cfg.config.writeFn = C.WrenWriteFn(C.wrengoWrite)
 	cfg.config.errorFn = C.WrenErrorFn(C.wrengoError)
@@ -406,11 +406,11 @@ func wrengoLoadModule(vm *C.WrenVM, name *C.char) *C.char {
 	return code
 }
 
-// //export wrengoBindForeignMethod
-// func wrengoBindForeignMethod(vm *C.WrenVM, module *C.char, className *C.char, isStatic C.bool, signature *C.char) unsafe.Pointer {
-// 	vmMap[vm].cb.BindForeignMethodFunc(vmMap[vm], C.GoString(module), C.GoString(className), bool(isStatic), C.GoString(signature))
-// 	return C.WrenForeignMethodFn{}
-// }
+//export wrengoBindForeignMethod
+func wrengoBindForeignMethod(vm *C.WrenVM, module *C.char, className *C.char, isStatic C.bool, signature *C.char) unsafe.Pointer {
+	vmMap[vm].cb.BindForeignMethodFunc(vmMap[vm], C.GoString(module), C.GoString(className), bool(isStatic), C.GoString(signature))
+	return unsafe.Pointer()
+}
 
 //export wrengoBindForeignClass
 func wrengoBindForeignClass(vm *C.WrenVM, module *C.char, className *C.char) C.WrenForeignClassMethods {

@@ -7,9 +7,9 @@ func defaultLoadModule(vm *VM, module string) string {
 	return ""
 }
 
-// func defaultBindForeignMethod(vm *VM, module, className string, isStatic bool, signature string) {
-// 	fmt.Println("BindForeignMethod in not implemented")
-// }
+func defaultBindForeignMethod(vm *VM, module, className string, isStatic bool, signature string) {
+	fmt.Println("BindForeignMethod in not implemented")
+}
 
 func defaultBindForeignClass(vm *VM, module, className string) {
 	fmt.Println("BindForeignClass in not implemented")
