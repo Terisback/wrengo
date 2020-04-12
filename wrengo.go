@@ -4,10 +4,12 @@ package wrengo
 #include "wren.h"
 
 extern char* wrengoLoadModule(WrenVM*, char*);
-extern void wrengoBindForeignMethod(WrenVM*, char*, char*, bool, char*);
+extern void* wrengoBindForeignMethod(WrenVM*, char*, char*, bool, char*);
 extern WrenForeignClassMethods wrengoBindForeignClass(WrenVM*, char*, char*);
 extern void wrengoWrite(WrenVM*, char*);
 extern void wrengoError(WrenVM*, WrenErrorType, char*, int, char* );
+
+extern void wrengoHello();
 */
 import "C"
 import (
@@ -130,6 +132,8 @@ func NewConfiguration() Configuration {
 type VM struct {
 	cb Callbacks
 
+	classes, methods map[string]unsafe.Pointer
+
 	vm *C.WrenVM
 }
 
@@ -148,6 +152,8 @@ func NewVM(cfg Configuration) VM {
 	vm := VM{}
 	vm.vm = C.wrenNewVM(cfg.config)
 	vm.cb = cfg.Callbacks
+	vm.classes = make(map[string]unsafe.Pointer)
+	vm.methods = make(map[string]unsafe.Pointer)
 	vmMap[vm.vm] = &vm
 	return vm
 }
@@ -409,7 +415,7 @@ func wrengoLoadModule(vm *C.WrenVM, name *C.char) *C.char {
 //export wrengoBindForeignMethod
 func wrengoBindForeignMethod(vm *C.WrenVM, module *C.char, className *C.char, isStatic C.bool, signature *C.char) unsafe.Pointer {
 	vmMap[vm].cb.BindForeignMethodFunc(vmMap[vm], C.GoString(module), C.GoString(className), bool(isStatic), C.GoString(signature))
-	return unsafe.Pointer()
+	return unsafe.Pointer(C.wrengoHello)
 }
 
 //export wrengoBindForeignClass
@@ -427,3 +433,6 @@ func wrengoWrite(vm *C.WrenVM, text *C.char) {
 func wrengoError(vm *C.WrenVM, err C.WrenErrorType, module *C.char, line C.int, message *C.char) {
 	vmMap[vm].cb.ErrorFunc(vmMap[vm], ErrorType(err), C.GoString(module), int(line), C.GoString(message))
 }
+
+//export wrengoHello
+func wrengoHello() { fmt.Println("Hello") }
