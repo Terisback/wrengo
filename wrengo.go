@@ -143,11 +143,6 @@ func NewConfiguration() Configuration {
 	cfg := Configuration{}
 	cfg.config = &C.WrenConfiguration{}
 	C.wrenInitConfiguration(cfg.config)
-	cfg.LoadModuleFunc = defaultLoadModule
-	cfg.BindForeignMethodFunc = defaultBindForeignMethod
-	cfg.BindForeignClassFunc = defaultBindForeignClass
-	cfg.WriteFunc = defaultWrite
-	cfg.ErrorFunc = defaultError
 	return cfg
 }
 
@@ -167,11 +162,29 @@ func NewVM(cfg Configuration) VM {
 	cfg.config.minHeapSize = C.size_t(cfg.MinHeapSize)
 	cfg.config.heapGrowthPercent = C.int(cfg.HeapGrowthPercent)
 
-	cfg.config.loadModuleFn = C.WrenLoadModuleFn(C.wrengoLoadModule)
-	cfg.config.bindForeignMethodFn = C.WrenBindForeignMethodFn(C.wrengoBindForeignMethod)
-	cfg.config.bindForeignClassFn = C.WrenBindForeignClassFn(C.wrengoBindForeignClass)
-	cfg.config.writeFn = C.WrenWriteFn(C.wrengoWrite)
-	cfg.config.errorFn = C.WrenErrorFn(C.wrengoError)
+	if cfg.ResolveModuleFunc != nil {
+		cfg.config.resolveModuleFn = C.WrenResolveModuleFn(C.wrengoResolveModule)
+	}
+
+	if cfg.LoadModuleFunc != nil {
+		cfg.config.loadModuleFn = C.WrenLoadModuleFn(C.wrengoLoadModule)
+	}
+
+	if cfg.BindForeignMethodFunc != nil {
+		cfg.config.bindForeignMethodFn = C.WrenBindForeignMethodFn(C.wrengoBindForeignMethod)
+	}
+
+	if cfg.BindForeignClassFunc != nil {
+		cfg.config.bindForeignClassFn = C.WrenBindForeignClassFn(C.wrengoBindForeignClass)
+	}
+
+	if cfg.WriteFunc != nil {
+		cfg.config.writeFn = C.WrenWriteFn(C.wrengoWrite)
+	}
+
+	if cfg.ErrorFunc != nil {
+		cfg.config.errorFn = C.WrenErrorFn(C.wrengoError)
+	}
 
 	vm := VM{}
 	vm.vm = C.wrenNewVM(cfg.config)
