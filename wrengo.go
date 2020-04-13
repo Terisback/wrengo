@@ -15,6 +15,8 @@ import (
 	"fmt"
 	"reflect"
 	"unsafe"
+
+	"github.com/mattn/go-pointer"
 )
 
 var (
@@ -454,8 +456,8 @@ func wrengoLoadModule(vm *C.WrenVM, name *C.char) *C.char {
 
 //export wrengoBindForeignMethod
 func wrengoBindForeignMethod(vm *C.WrenVM, module *C.char, className *C.char, isStatic C.bool, signature *C.char) unsafe.Pointer {
-	vmMap[vm].cb.BindForeignMethodFunc(vmMap[vm], C.GoString(module), C.GoString(className), bool(isStatic), C.GoString(signature))
-	return unsafe.Pointer(C.wrengoHello)
+	f := vmMap[vm].cb.BindForeignMethodFunc(vmMap[vm], C.GoString(module), C.GoString(className), bool(isStatic), C.GoString(signature))
+	return pointer.Save(&f)
 }
 
 //export wrengoBindForeignClass
