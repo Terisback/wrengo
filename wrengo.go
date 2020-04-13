@@ -3,13 +3,12 @@ package wrengo
 /*
 #include "wren.h"
 
+extern char* wrengoResolveModule(WrenVM*, char*, char*);
 extern char* wrengoLoadModule(WrenVM*, char*);
 extern void* wrengoBindForeignMethod(WrenVM*, char*, char*, bool, char*);
 extern WrenForeignClassMethods wrengoBindForeignClass(WrenVM*, char*, char*);
 extern void wrengoWrite(WrenVM*, char*);
 extern void wrengoError(WrenVM*, WrenErrorType, char*, int, char* );
-
-extern void wrengoHello();
 */
 import "C"
 import (
@@ -23,6 +22,33 @@ var (
 )
 
 type Callbacks struct {
+
+	// The callback Wren uses to resolve a module name.
+	//
+	// Some host applications may wish to support "relative" imports, where the
+	// meaning of an import string depends on the module that contains it. To
+	// support that without baking any policy into Wren itself, the VM gives the
+	// host a chance to resolve an import string.
+	//
+	// Before an import is loaded, it calls this, passing in the name of the
+	// module that contains the import and the import string. The host app can
+	// look at both of those and produce a new "canonical" string that uniquely
+	// identifies the module. This string is then used as the name of the module
+	// going forward. It is what is passed to [loadModuleFn], how duplicate
+	// imports of the same module are detected, and how the module is reported in
+	// stack traces.
+	//
+	// If you leave this function NULL, then the original import string is
+	// treated as the resolved string.
+	//
+	// If an import cannot be resolved by the embedder, it should return NULL and
+	// Wren will report that as a runtime error.
+	//
+	// Wren will take ownership of the string you return and free it for you, so
+	// it should be allocated using the same allocation function you provide
+	// above.
+	ResolveModuleFunc func(vm *VM, importer, name string) string
+
 	// The callback Wren uses to load a module.
 	//
 	// Since Wren does not talk directly to the file system, it relies on the
@@ -49,7 +75,7 @@ type Callbacks struct {
 	//
 	// If the foreign function could not be found, this should return NULL and
 	// Wren will report it as runtime error.
-	BindForeignMethodFunc func(vm *VM, module, className string, isStatic bool, signature string)
+	BindForeignMethodFunc func(vm *VM, module, className string, isStatic bool, signature string) func(vm *VM)
 
 	// The callback Wren uses to find a foreign class and get its foreign methods.
 	//
@@ -403,7 +429,12 @@ func (vm *VM) AbortFiber(slot int) {
 	C.wrenAbortFiber(vm.vm, C.int(slot))
 }
 
-// Default callbacks
+//export wrengoResolveModule
+func wrengoResolveModule(vm *C.WrenVM, importer *C.char, name *C.char) *C.char {
+	path := C.CString(vmMap[vm].cb.ResolveModuleFunc(vmMap[vm], C.GoString(importer), C.GoString(name)))
+	defer C.free(unsafe.Pointer(path))
+	return path
+}
 
 //export wrengoLoadModule
 func wrengoLoadModule(vm *C.WrenVM, name *C.char) *C.char {
@@ -433,6 +464,3 @@ func wrengoWrite(vm *C.WrenVM, text *C.char) {
 func wrengoError(vm *C.WrenVM, err C.WrenErrorType, module *C.char, line C.int, message *C.char) {
 	vmMap[vm].cb.ErrorFunc(vmMap[vm], ErrorType(err), C.GoString(module), int(line), C.GoString(message))
 }
-
-//export wrengoHello
-func wrengoHello() { fmt.Println("Hello") }
