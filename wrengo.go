@@ -158,8 +158,6 @@ func NewConfiguration() Configuration {
 type VM struct {
 	cb Callbacks
 
-	classes, methods map[string]unsafe.Pointer
-
 	vm *C.WrenVM
 }
 
@@ -178,8 +176,6 @@ func NewVM(cfg Configuration) VM {
 	vm := VM{}
 	vm.vm = C.wrenNewVM(cfg.config)
 	vm.cb = cfg.Callbacks
-	vm.classes = make(map[string]unsafe.Pointer)
-	vm.methods = make(map[string]unsafe.Pointer)
 	vmMap[vm.vm] = &vm
 	return vm
 }
