@@ -306,7 +306,7 @@ func (vm *VM) GetSlotBytes(slot, length int) []byte {
 // Reads a number from [slot].
 //
 // It is an error to call this if the slot does not contain a number.
-func (vm *VM) GetSlotFloat(slot int) float64 {
+func (vm *VM) GetSlotDouble(slot int) float64 {
 	return float64(C.wrenGetSlotDouble(vm.vm, C.int(slot)))
 }
 
