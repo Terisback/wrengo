@@ -19,6 +19,10 @@ import (
 	"github.com/mattn/go-pointer"
 )
 
+const (
+	DefaultModule string = "main"
+)
+
 var (
 	vmMap = make(map[*C.WrenVM]*VM)
 )
