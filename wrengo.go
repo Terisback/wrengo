@@ -12,8 +12,6 @@ extern void wrengoError(WrenVM*, WrenErrorType, char*, int, char* );
 */
 import "C"
 import (
-	"fmt"
-	"reflect"
 	"unsafe"
 
 	"github.com/mattn/go-pointer"
@@ -314,20 +312,6 @@ func (vm *VM) GetSlotDouble(slot int) float64 {
 	return float64(C.wrenGetSlotDouble(vm.vm, C.int(slot)))
 }
 
-type Foreign struct {
-}
-
-// Reads a foreign object from [slot] and returns a pointer to the foreign data
-// stored with it.
-//
-// It is an error to call this if the slot does not contain an instance of a
-// foreign class.
-func (vm *VM) GetSlotForeign(slot int) Foreign {
-	// TODO
-	fmt.Println(reflect.TypeOf(C.wrenGetSlotForeign(vm.vm, C.int(slot))))
-	return Foreign{}
-}
-
 // Reads a string from [slot].
 //
 // The memory for the returned string is owned by Wren. You can inspect it
@@ -365,19 +349,6 @@ func (vm *VM) SetSlotBytes(slot int, value []byte) {
 // Stores the numeric [value] in [slot].
 func (vm *VM) SetSlotDouble(slot int, value float64) {
 	C.wrenSetSlotDouble(vm.vm, C.int(slot), C.double(value))
-}
-
-// Creates a new instance of the foreign class stored in [classSlot] with [size]
-// bytes of raw storage and places the resulting object in [slot].
-//
-// This does not invoke the foreign class's constructor on the new instance. If
-// you need that to happen, call the constructor from Wren, which will then
-// call the allocator foreign method. In there, call this to create the object
-// and then the constructor will be invoked when the allocator returns.
-//
-// Returns a pointer to the foreign object's data.
-func (vm *VM) SetSlotNewForeign(slot, classSlot int, size uint) {
-	C.wrenSetSlotNewForeign(vm.vm, C.int(slot), C.int(classSlot), C.size_t(size))
 }
 
 // Stores a new empty list in [slot].
