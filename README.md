@@ -44,7 +44,7 @@ func main() {
 
 ## Current
 
-Works everything, but foreign part. And I doesn't check slots.
+Works everything, but foreign part.
 
 ## Todo
 
