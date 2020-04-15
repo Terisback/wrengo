@@ -2,6 +2,8 @@ package wrengo
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInterpret(t *testing.T) {
@@ -17,16 +19,11 @@ func TestInterpret(t *testing.T) {
 
 	result := vm.Interpret(DefaultModule, `System.print("Hello there!")`)
 
-	if out != "Hello there!\n" {
-		t.Errorf(`Interpret("Hello there!") returned unexpected value: %s`, out)
-	}
-
-	if result != RESULT_SUCCESS {
-		t.Errorf(`Interpret("Hello there!") have done with unexpected result: %s`, result.String())
-	}
+	assert.Equal(t, result, RESULT_SUCCESS)
+	assert.Equal(t, "Hello there!\n", out)
 }
 
-func TestVariables(t *testing.T) {
+func TestCallHandle(t *testing.T) {
 	config := NewConfiguration()
 	config.WriteFunc = CallbackWrite
 	config.ErrorFunc = CallbackError
@@ -41,9 +38,7 @@ func TestVariables(t *testing.T) {
 		}
 	`)
 
-	if result != RESULT_SUCCESS {
-		t.Errorf(`TestVariables have done with unexpected result: %s`, result.String())
-	}
+	assert.Equal(t, result, RESULT_SUCCESS)
 
 	vm.EnsureSlots(3)
 	vm.GetVariable(DefaultModule, "WrenMath", 0)
@@ -52,13 +47,9 @@ func TestVariables(t *testing.T) {
 	vm.SetSlotDouble(2, 1337)
 	result = h.Call()
 
-	if result != RESULT_SUCCESS {
-		t.Errorf(`TestVariables method have done with unexpected result: %s`, result.String())
-	}
+	assert.Equal(t, result, RESULT_SUCCESS)
 
 	res := vm.GetSlotDouble(0)
 
-	if res != 228+1337 {
-		t.Errorf(`TestVariables method returned unexpected value: %s`, result.String())
-	}
+	assert.Equal(t, float64(228+1337), res)
 }
