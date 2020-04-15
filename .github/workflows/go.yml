@@ -1,4 +1,4 @@
-name: Go
+name: Build
 
 on:
   push:
@@ -38,19 +38,3 @@ jobs:
           v: true
           x: false
           ldflags: -s -w
-          
-    - name: Upload interpret artifact
-      uses: actions/upload-artifact@v1.0.0
-      with:
-          # Artifact name
-          name: interpret
-          # Directory containing files to upload
-          path: build/interpret
-      
-    - name: Upload handles artifact
-      uses: actions/upload-artifact@v1.0.0
-      with:
-          # Artifact name
-          name: handles
-          # Directory containing files to upload
-          path: build/handles
