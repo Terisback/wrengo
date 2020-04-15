@@ -213,11 +213,11 @@ func (vm *VM) GC() {
 
 // Runs [source], a string of Wren source code in a new fiber in VM in the
 // context of resolved [module].
-func (vm *VM) Interpret(module, source string) InterpretResult {
+func (vm *VM) Interpret(module, source string) error {
 	m, s := C.CString(module), C.CString(source)
 	defer C.free(unsafe.Pointer(m))
 	defer C.free(unsafe.Pointer(s))
-	return InterpretResult(C.wrenInterpret(vm.vm, m, s))
+	return InterpretResult(C.wrenInterpret(vm.vm, m, s)).Error()
 }
 
 // A handle to a Wren object.
@@ -254,8 +254,8 @@ func (vm *VM) NewCallHandle(signature string) Handle {
 // signature.
 //
 // After this returns, you can access the return value from slot 0 on the stack.
-func (h *Handle) Call() InterpretResult {
-	return InterpretResult(C.wrenCall(h.vm.vm, h.handle))
+func (h *Handle) Call() error {
+	return InterpretResult(C.wrenCall(h.vm.vm, h.handle)).Error()
 }
 
 // Releases the reference stored in [handle]. After calling this, [handle] can

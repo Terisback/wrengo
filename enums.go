@@ -1,5 +1,7 @@
 package wrengo
 
+import "errors"
+
 type InterpretResult int
 
 const (
@@ -10,6 +12,19 @@ const (
 
 func (i InterpretResult) String() string {
 	return [...]string{"RESULT_SUCCESS", "RESULT_COMPILE_ERROR", "RESULT_RUNTIME_ERROR"}[i]
+}
+
+func (i InterpretResult) Error() error {
+	switch i {
+	case RESULT_SUCCESS:
+		return nil
+	case RESULT_COMPILE_ERROR:
+		return errors.New("COMPILE_ERROR")
+	case RESULT_RUNTIME_ERROR:
+		return errors.New("RUNTIME_ERROR")
+	default:
+		panic("unreachable")
+	}
 }
 
 type ErrorType int

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/Terisback/wrengo"
 )
@@ -13,7 +13,7 @@ func main() {
 	vm := wrengo.NewVM(config)
 	defer vm.FreeVM()
 
-	vm.Interpret(wrengo.DefaultModule, `
+	err := vm.Interpret(wrengo.DefaultModule, `
 		class WrenMath {
 			static do_add(a, b) {
 				return a + b
@@ -29,52 +29,59 @@ func main() {
 			}
 		}
 	`)
-
-	vm.EnsureSlots(3)
-	vm.GetVariable(wrengo.DefaultModule, "WrenMath", 0)
-	h := vm.NewCallHandle("do_add(_,_)")
-	vm.SetSlotDouble(1, 9)
-	vm.SetSlotDouble(2, 3)
-	result := h.Call()
-	if result != wrengo.RESULT_SUCCESS {
-		log.Fatalln(result.String())
-	} else {
-		log.Println(result.String(), vm.GetSlotDouble(0))
+	if err != nil {
+		panic("Something went wrong")
 	}
 
-	vm.EnsureSlots(3)
-	vm.GetVariable(wrengo.DefaultModule, "WrenMath", 0)
-	h = vm.NewCallHandle("do_sub(_,_)")
-	vm.SetSlotDouble(1, 9)
-	vm.SetSlotDouble(2, 3)
-	result = h.Call()
-	if result != wrengo.RESULT_SUCCESS {
-		log.Fatalln(result.String())
-	} else {
-		log.Println(result.String(), vm.GetSlotDouble(0))
+	{
+		vm.EnsureSlots(3)
+		vm.GetVariable(wrengo.DefaultModule, "WrenMath", 0)
+		h := vm.NewCallHandle("do_add(_,_)")
+		vm.SetSlotDouble(1, 9)
+		vm.SetSlotDouble(2, 3)
+		err = h.Call()
+		if err != nil {
+			panic("Something went wrong")
+		}
+		fmt.Println(vm.GetSlotDouble(0))
 	}
 
-	vm.EnsureSlots(3)
-	vm.GetVariable(wrengo.DefaultModule, "WrenMath", 0)
-	h = vm.NewCallHandle("do_mul(_,_)")
-	vm.SetSlotDouble(1, 9)
-	vm.SetSlotDouble(2, 3)
-	result = h.Call()
-	if result != wrengo.RESULT_SUCCESS {
-		log.Fatalln(result.String())
-	} else {
-		log.Println(result.String(), vm.GetSlotDouble(0))
+	{
+		vm.EnsureSlots(3)
+		vm.GetVariable(wrengo.DefaultModule, "WrenMath", 0)
+		h := vm.NewCallHandle("do_sub(_,_)")
+		vm.SetSlotDouble(1, 9)
+		vm.SetSlotDouble(2, 3)
+		err = h.Call()
+		if err != nil {
+			panic("Something went wrong")
+		}
+		fmt.Println(vm.GetSlotDouble(0))
 	}
 
-	vm.EnsureSlots(3)
-	vm.GetVariable(wrengo.DefaultModule, "WrenMath", 0)
-	h = vm.NewCallHandle("do_div(_,_)")
-	vm.SetSlotDouble(1, 9)
-	vm.SetSlotDouble(2, 3)
-	result = h.Call()
-	if result != wrengo.RESULT_SUCCESS {
-		log.Fatalln(result.String())
-	} else {
-		log.Println(result.String(), vm.GetSlotDouble(0))
+	{
+		vm.EnsureSlots(3)
+		vm.GetVariable(wrengo.DefaultModule, "WrenMath", 0)
+		h := vm.NewCallHandle("do_mul(_,_)")
+		vm.SetSlotDouble(1, 9)
+		vm.SetSlotDouble(2, 3)
+		err = h.Call()
+		if err != nil {
+			panic("Something went wrong")
+		}
+		fmt.Println(vm.GetSlotDouble(0))
+	}
+
+	{
+		vm.EnsureSlots(3)
+		vm.GetVariable(wrengo.DefaultModule, "WrenMath", 0)
+		h := vm.NewCallHandle("do_div(_,_)")
+		vm.SetSlotDouble(1, 9)
+		vm.SetSlotDouble(2, 3)
+		err = h.Call()
+		if err != nil {
+			panic("Something went wrong")
+		}
+		fmt.Println(vm.GetSlotDouble(0))
 	}
 }
