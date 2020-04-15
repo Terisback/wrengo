@@ -33,6 +33,11 @@ jobs:
     - name: Golang CGO cross compiler
       uses: crazy-max/ghaction-xgo@v1.1.0
       with:
-        pkg: ./cmd/interpret/
-        v: true
-        x: true
+          xgo_version: latest
+          go_version: 1.14.x
+          dest: build
+          pkg: ./cmd/interpret/
+          targets: windows/386,windows/amd64,linux/386,linux/amd64,darwin/386,darwin/amd64
+          v: true
+          x: false
+          ldflags: -s -w
