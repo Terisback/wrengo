@@ -36,18 +36,16 @@ func main() {
     for {
         fmt.Print("> ")
         text, _ := reader.ReadString('\n')
-        vm.Interpret("main", text+"\n")
+        err := vm.Interpret("main", text+"\n")
+        if err != nil {
+            fmt.Println(err)
+        }
     }
 }
 
 ```
 
-## Current
-
-Works everything, but foreign part.
-
 ## Todo
 
-- [ ] Create examples for slots
-- [ ] Handle Foreign classes and methods
+- [ ] Implement Foreign classes and methods
 - [ ] Make intelligible binding
