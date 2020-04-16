@@ -62,6 +62,32 @@ On <b>MacOS</b> you need Xcode or Command Line Tools for Xcode.
 - <b>Wren is class-based.</b> There are lots of scripting languages out there, but many have unusual or non-existent object models. Wren places [classes](http://wren.io/classes.html) front and center.
 - <b>Wren is concurrent.</b> Lightweight [fibers](http://wren.io/concurrency.html) are core to the execution model and let you organize your program into an army of communicating coroutines.
 
+## Benchmark
+
+| | fib(35) | fibt(35) |  Type  |
+| :--- |    ---: |     ---: |  :---: |
+| Go | `96ms` | `25ms` | Go (native) |
+| [**Wrengo**](https://github.com/Terisback/wrengo) | `34ms` | `29ms` | Wren VM on Go |
+| [Tengo](https://github.com/d5/tengo) | `34ms` | `30ms` | VM on Go |
+| Lua | `2ms` | `25ms` | Lua (native) |
+| [go-lua](https://github.com/Shopify/go-lua) | `7ms` | `26ms` | Lua VM on Go |
+| [GopherLua](https://github.com/yuin/gopher-lua) | `7ms` | `29ms` | Lua VM on Go |
+| Python | `5ms` | `58ms` | Python (native) |
+| [starlark-go](https://github.com/google/starlark-go) | `16ms` | `26ms` | Python-like Interpreter on Go |
+| [gpython](https://github.com/go-python/gpython) | `49ms` | `42ms` | Python Interpreter on Go |
+| [goja](https://github.com/dop251/goja) | `8ms` | `28ms` | JS VM on Go |
+| [otto](https://github.com/robertkrimen/otto) | `131ms` | `35ms` | JS Interpreter on Go |
+| [Anko](https://github.com/mattn/anko) | `126ms` | `27ms` | Interpreter on Go |
+
+_* [fib(35)](https://github.com/Terisback/tengobench/blob/master/code/fib.wren):
+Fibonacci(35)_  
+_* [fibt(35)](https://github.com/Terisback/tengobench/blob/master/code/fibtc.wren):
+[tail-call](https://en.wikipedia.org/wiki/Tail_call) version of Fibonacci(35)_  
+_* **Go** does not read the source code from file, while all other cases do_  
+_* Results were rounded up_  
+_* Tested on my Microsoft Sufrace 6 Pro_  
+_* See [here](https://github.com/Terisback/tengobench) for commands/codes used_
+
 ## 👀 Examples
 
 A few examples are stored in the [cmd](https://github.com/Terisback/wrengo/tree/master/cmd) folder
