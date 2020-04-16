@@ -1,6 +1,6 @@
 <p align="center">
     <a hrer="http://wren.io">
-        <img alt="Wren" height="125" src="http://wren.io/wren.svg">
+        <img alt="Wren" height="300" src="https://user-images.githubusercontent.com/26527529/79434497-eab31800-7fe7-11ea-842e-d86c9e46fdc0.png">
     </a>
     <br>
     <a href="https://pkg.go.dev/github.com/Terisback/wrengo?tab=doc">
