@@ -79,14 +79,14 @@ On <b>MacOS</b> you need Xcode or Command Line Tools for Xcode.
 | [otto](https://github.com/robertkrimen/otto) | `131ms` | `35ms` | JS Interpreter on Go |
 | [Anko](https://github.com/mattn/anko) | `126ms` | `27ms` | Interpreter on Go |
 
-_* [fib(35)](https://github.com/Terisback/tengobench/blob/master/code/fib.wren):
+_* [fib(35)](https://github.com/Terisback/wrengobench/blob/master/code/fib.wren):
 Fibonacci(35)_  
-_* [fibt(35)](https://github.com/Terisback/tengobench/blob/master/code/fibtc.wren):
+_* [fibt(35)](https://github.com/Terisback/wrengobench/blob/master/code/fibtc.wren):
 [tail-call](https://en.wikipedia.org/wiki/Tail_call) version of Fibonacci(35)_  
 _* **Go** does not read the source code from file, while all other cases do_  
 _* Results were rounded up_  
 _* Tested on my Microsoft Sufrace 6 Pro_  
-_* See [here](https://github.com/Terisback/tengobench) for commands/codes used_
+_* See [here](https://github.com/Terisback/wrengobench) for commands/codes used_
 
 ## 👀 Examples
 
