@@ -62,7 +62,7 @@ On <b>MacOS</b> you need Xcode or Command Line Tools for Xcode.
 - <b>Wren is class-based.</b> There are lots of scripting languages out there, but many have unusual or non-existent object models. Wren places [classes](http://wren.io/classes.html) front and center.
 - <b>Wren is concurrent.</b> Lightweight [fibers](http://wren.io/concurrency.html) are core to the execution model and let you organize your program into an army of communicating coroutines.
 
-## Benchmark
+## 🏇🏻 Benchmark
 
 | | fib(35) | fibt(35) |  Type  |
 | :--- |    ---: |     ---: |  :---: |
@@ -88,11 +88,21 @@ _* Results were rounded up_
 _* Tested on my Microsoft Sufrace 6 Pro_  
 _* See [here](https://github.com/Terisback/wrengobench) for commands/codes used_
 
-## 👀 Examples
+## 👨🏻‍💻 Examples
 
 A few examples are stored in the [cmd](https://github.com/Terisback/wrengo/tree/master/cmd) folder
 
-## 🧬 Future plans
+## 👨‍🦽 Compromises
 
-- [ ] Implement Foreign classes and methods
-- [ ] Make intelligible binding
+<b>Foreign Function Limits</b> Due to Go's inability to generate C-exported functions at runtime, the number of foreign methods able to be registered with the Wren VM through this package is limited
+to 256 for functions and 256 for classes. This number is completely arbitrary, though, and can be changed by modifying
+the directive at the bottom of wrengo.go and running "go generate". If you feel like
+this number is a terrible default, pull requests will be happily accepted.
+
+## 📚 Similar/nearby projects
+
+- [go-wren](https://github.com/dradtke/go-wren) - doing same work as this package, but working with older version of Wren and it has more simplifications.
+- [tengo](https://github.com/d5/tengo) - Tengo is fast and secure because it's compiled/executed as bytecode on stack-based VM that's written in native Go.
+- [go-lua](https://github.com/Shopify/go-lua) - Port of the Lua 5.2 VM to pure Go.
+
+More in [awesome-go](https://github.com/avelino/awesome-go#embeddable-scripting-languages) repository.
