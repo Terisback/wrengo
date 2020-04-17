@@ -22,7 +22,7 @@ jobs:
           go_version: 1.14.x
           dest: build/interpret
           pkg: ./cmd/interpret/
-          targets: windows/386,windows/amd64,linux/386,linux/amd64,darwin/386,darwin/amd64
+          targets: windows/amd64,linux/amd64,darwin/amd64
           v: true
           x: false
           ldflags: -s -w
@@ -34,7 +34,19 @@ jobs:
           go_version: 1.14.x
           dest: build/handles
           pkg: ./cmd/handles/
-          targets: windows/386,windows/amd64,linux/386,linux/amd64,darwin/386,darwin/amd64
+          targets: windows/amd64,linux/amd64,darwin/amd64
+          v: true
+          x: false
+          ldflags: -s -w
+
+    - name: Build wrengo
+      uses: crazy-max/ghaction-xgo@v1.1.0
+      with:
+          xgo_version: latest
+          go_version: 1.14.x
+          dest: build/handles
+          pkg: ./cmd/wrengo/
+          targets: windows/amd64,linux/amd64,darwin/amd64
           v: true
           x: false
           ldflags: -s -w
