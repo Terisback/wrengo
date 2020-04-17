@@ -1,6 +1,7 @@
 package wrengo
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -86,4 +87,48 @@ func TestSlots(t *testing.T) {
 
 	vm.SetSlotString(0, "Hi")
 	assert.Equal(t, "Hi", vm.GetSlotString(0))
+}
+
+type God struct {
+	msg string
+}
+
+// The constructor for a foreign type takes no arguments and returns
+// an interface{} value representing the new object.
+func NewGod() interface{} {
+	return &God{msg: "Do my bidding, %s!"}
+}
+
+func GetGodsMessage(vm *VM) {
+	var god God
+	(*vm).GetSlotForeign(0, &god)
+	name := (*vm).GetSlotString(1)
+	(*vm).SetSlotString(0, fmt.Sprintf(god.msg, name))
+}
+
+func TestForeign(t *testing.T) {
+	program := `
+			foreign class God {
+				construct new() {}
+				foreign getMessage(name)
+			}
+
+			var god = God.new()
+			System.print(god.getMessage("Damien"))
+		`
+
+	var out string
+
+	config := NewConfiguration()
+	config.WriteFunc = func(vm *VM, text string) {
+		out += text
+	}
+	config.ErrorFunc = CallbackError
+	vm := NewVM(config)
+	assert.NoError(t, vm.BindForeignClass("God", NewGod))
+	assert.NoError(t, vm.BindForeignMethod("God", false, "getMessage(_)", GetGodsMessage))
+
+	assert.NoError(t, vm.Interpret(DefaultModule, program))
+
+	assert.Equal(t, "Do my bidding, Damien!\n", out)
 }

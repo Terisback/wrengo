@@ -169,6 +169,8 @@ func NewVM(cfg Configuration) VM {
 
 	vm := VM{}
 	vm.vm = C.wrenNewVM(cfg.config)
+	vm.classes = make(map[string]unsafe.Pointer)
+	vm.methods = make(map[string]unsafe.Pointer)
 	vm.cb = cfg.Callbacks
 	vmMap[vm.vm] = &vm
 	return vm
@@ -289,6 +291,17 @@ func (vm *VM) GetSlotDouble(slot int) float64 {
 	return float64(C.wrenGetSlotDouble(vm.vm, C.int(slot)))
 }
 
+// Reads a foreign object from [slot] and returns a pointer to the foreign data
+// stored with it.
+//
+// It is an error to call this if the slot does not contain an instance of a
+// foreign class.
+func (vm *VM) GetSlotForeign(slot int, i interface{}) {
+	_ = C.wrenGetSlotForeign(vm.vm, C.int(slot)) // ptr
+	// TODO: Implement return struct from ptr to i
+	// i = ptr
+}
+
 // Reads a string from [slot].
 //
 // The memory for the returned string is owned by Wren. You can inspect it
@@ -393,12 +406,12 @@ func (vm *VM) AbortFiber(slot int) {
 }
 
 // Registers a foreign method with the virtual machine.
-func (vm *VM) BindForeignMethod(signature string, f func(*VM)) error {
+func (vm *VM) BindForeignMethod(class string, isStatic bool, signature string, f func(*VM)) error {
 	ptr, err := registerFunc(signature, f)
 	if err != nil {
 		return err
 	}
-	vmMap[vm.vm].methods[signature] = ptr
+	vmMap[vm.vm].methods[bindSignature(DefaultModule, class, isStatic, signature)] = ptr
 	return nil
 }
 
@@ -412,6 +425,18 @@ func (vm *VM) BindForeignClass(signature string, f func() interface{}) error {
 	}
 	vmMap[vm.vm].classes[signature] = ptr
 	return nil
+}
+
+func bindSignature(module, class string, isStatic bool, signature string) string {
+	var sig bytes.Buffer
+	if isStatic {
+		sig.WriteString("static ")
+	}
+	sig.WriteString(class)
+	sig.WriteString(".")
+	sig.WriteString(signature)
+
+	return sig.String()
 }
 
 // DON'T USE THIS FUNCTION - IT'S COPYPASTA FROM GO-WREN
@@ -455,17 +480,9 @@ func wrengoBindForeignMethod(vm *C.WrenVM, module *C.char, class *C.char, static
 		className = C.GoString(class)
 		isStatic  = bool(static)
 		signature = C.GoString(sign)
-		fullName  bytes.Buffer
 	)
 
-	if isStatic {
-		fullName.WriteString("static ")
-	}
-	fullName.WriteString(className)
-	fullName.WriteString(".")
-	fullName.WriteString(signature)
-
-	if f, ok := vmMap[vm].methods[fullName.String()]; ok {
+	if f, ok := vmMap[vm].methods[bindSignature(m, className, isStatic, signature)]; ok {
 		return f
 	}
 
