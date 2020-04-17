@@ -12,9 +12,10 @@ extern void wrengoError(WrenVM*, WrenErrorType, char*, int, char* );
 */
 import "C"
 import (
+	"bytes"
+	"fmt"
+	"reflect"
 	"unsafe"
-
-	"github.com/mattn/go-pointer"
 )
 
 const (
@@ -69,25 +70,6 @@ type Callbacks struct {
 	// If a module with the given name could not be found by the embedder, it
 	// should return NULL and Wren will report that as a runtime error.
 	LoadModuleFunc func(vm *VM, name string) string
-
-	// The callback Wren uses to find a foreign method and bind it to a class.
-	//
-	// When a foreign method is declared in a class, this will be called with the
-	// foreign method's module, class, and signature when the class body is
-	// executed. It should return a pointer to the foreign function that will be
-	// bound to that method.
-	//
-	// If the foreign function could not be found, this should return NULL and
-	// Wren will report it as runtime error.
-	BindForeignMethodFunc func(vm *VM, module, className string, isStatic bool, signature string) func(vm *VM)
-
-	// The callback Wren uses to find a foreign class and get its foreign methods.
-	//
-	// When a foreign class is declared, this will be called with the class's
-	// module and name when the class body is executed. It should return the
-	// foreign functions uses to allocate and (optionally) finalize the bytes
-	// stored in the foreign object when an instance is created.
-	BindForeignClassFunc func(vm *VM, module, className string)
 
 	// The callback Wren uses to display text when `System.print()`
 	// or the other related functions are called.
@@ -155,9 +137,9 @@ func NewConfiguration() Configuration {
 // Wren has no global state, so all state stored by a running interpreter lives
 // here.
 type VM struct {
-	cb Callbacks
-
-	vm *C.WrenVM
+	cb               Callbacks
+	classes, methods map[string]unsafe.Pointer
+	vm               *C.WrenVM
 }
 
 // Creates a new Wren virtual machine using the given [configuration].
@@ -166,20 +148,15 @@ func NewVM(cfg Configuration) VM {
 	cfg.config.minHeapSize = C.size_t(cfg.MinHeapSize)
 	cfg.config.heapGrowthPercent = C.int(cfg.HeapGrowthPercent)
 
+	cfg.config.bindForeignMethodFn = C.WrenBindForeignMethodFn(C.wrengoBindForeignMethod)
+	cfg.config.bindForeignClassFn = C.WrenBindForeignClassFn(C.wrengoBindForeignClass)
+
 	if cfg.ResolveModuleFunc != nil {
 		cfg.config.resolveModuleFn = C.WrenResolveModuleFn(C.wrengoResolveModule)
 	}
 
 	if cfg.LoadModuleFunc != nil {
 		cfg.config.loadModuleFn = C.WrenLoadModuleFn(C.wrengoLoadModule)
-	}
-
-	if cfg.BindForeignMethodFunc != nil {
-		cfg.config.bindForeignMethodFn = C.WrenBindForeignMethodFn(C.wrengoBindForeignMethod)
-	}
-
-	if cfg.BindForeignClassFunc != nil {
-		cfg.config.bindForeignClassFn = C.WrenBindForeignClassFn(C.wrengoBindForeignClass)
 	}
 
 	if cfg.WriteFunc != nil {
@@ -415,6 +392,44 @@ func (vm *VM) AbortFiber(slot int) {
 	C.wrenAbortFiber(vm.vm, C.int(slot))
 }
 
+// Registers a foreign method with the virtual machine.
+func (vm *VM) BindForeignMethod(signature string, f func(*VM)) error {
+	ptr, err := registerFunc(signature, f)
+	if err != nil {
+		return err
+	}
+	vmMap[vm.vm].methods[signature] = ptr
+	return nil
+}
+
+// Registers a foreign class with the virtual machine.
+func (vm *VM) BindForeignClass(signature string, f func() interface{}) error {
+	ptr, err := registerClass(signature, func() {
+		newForeign(vm.vm, f())
+	})
+	if err != nil {
+		return err
+	}
+	vmMap[vm.vm].classes[signature] = ptr
+	return nil
+}
+
+// DON'T USE THIS FUNCTION - IT'S COPYPASTA FROM GO-WREN
+// AFTER CALLING THUS FUNCTION CAN BE UNPREDICTABLE CONSEQUENCES
+// newForeign allocates a new foreign object.
+//
+// This method should only be called from a foreign class allocation function.
+// It takes an instance of the VM and a newly allocated foreign object ("foreign"
+// meaning that it's created in Go and not Wren) and makes it available to Wren.
+func newForeign(vm *C.WrenVM, x interface{}) {
+	var (
+		v   = reflect.Indirect(reflect.ValueOf(x))
+		t   = v.Type()
+		ptr = C.wrenSetSlotNewForeign(vm, C.int(0), C.int(0), C.size_t(t.Size()))
+	)
+	reflect.NewAt(t, ptr).Elem().Set(v)
+}
+
 //export wrengoResolveModule
 func wrengoResolveModule(vm *C.WrenVM, importer *C.char, name *C.char) *C.char {
 	path := C.CString(vmMap[vm].cb.ResolveModuleFunc(vmMap[vm], C.GoString(importer), C.GoString(name)))
@@ -430,15 +445,51 @@ func wrengoLoadModule(vm *C.WrenVM, name *C.char) *C.char {
 }
 
 //export wrengoBindForeignMethod
-func wrengoBindForeignMethod(vm *C.WrenVM, module *C.char, className *C.char, isStatic C.bool, signature *C.char) unsafe.Pointer {
-	f := vmMap[vm].cb.BindForeignMethodFunc(vmMap[vm], C.GoString(module), C.GoString(className), bool(isStatic), C.GoString(signature))
-	return pointer.Save(&f)
+func wrengoBindForeignMethod(vm *C.WrenVM, module *C.char, class *C.char, static C.bool, sign *C.char) unsafe.Pointer {
+	m := C.GoString(module)
+	if m != "main" {
+		return unsafe.Pointer(nil)
+	}
+
+	var (
+		className = C.GoString(class)
+		isStatic  = bool(static)
+		signature = C.GoString(sign)
+		fullName  bytes.Buffer
+	)
+
+	if isStatic {
+		fullName.WriteString("static ")
+	}
+	fullName.WriteString(className)
+	fullName.WriteString(".")
+	fullName.WriteString(signature)
+
+	if f, ok := vmMap[vm].methods[fullName.String()]; ok {
+		return f
+	}
+
+	return unsafe.Pointer(nil)
 }
 
 //export wrengoBindForeignClass
 func wrengoBindForeignClass(vm *C.WrenVM, module *C.char, className *C.char) C.WrenForeignClassMethods {
-	vmMap[vm].cb.BindForeignClassFunc(vmMap[vm], C.GoString(module), C.GoString(className))
-	return C.WrenForeignClassMethods{}
+	m := C.GoString(module)
+	if m != "main" {
+		panic("tried to bind foreign class from non-main module")
+	}
+
+	cn := C.GoString(className)
+	if c, ok := vmMap[vm].classes[cn]; ok {
+		// Might be a good idea to support finalizers, but since this is Go,
+		// I don't think they're actually necessary.
+		return C.WrenForeignClassMethods{
+			allocate: C.WrenForeignMethodFn(c),
+			finalize: nil,
+		}
+	}
+
+	panic(fmt.Sprintf("foreign class %s not found", cn))
 }
 
 //export wrengoWrite
@@ -450,3 +501,6 @@ func wrengoWrite(vm *C.WrenVM, text *C.char) {
 func wrengoError(vm *C.WrenVM, err C.WrenErrorType, module *C.char, line C.int, message *C.char) {
 	vmMap[vm].cb.ErrorFunc(vmMap[vm], ErrorType(err), C.GoString(module), int(line), C.GoString(message))
 }
+
+// Change 256 to a different number to enable more foreign class/method registrations.
+//go:generate go run cgluer.go 256
