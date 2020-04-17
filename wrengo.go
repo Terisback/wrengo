@@ -1,6 +1,7 @@
 package wrengo
 
 /*
+#cgo LDFLAGS: -L${SRCDIR}/lib -lwren
 #include "wren.h"
 
 extern char* wrengoResolveModule(WrenVM*, char*, char*);
@@ -297,7 +298,8 @@ func (vm *VM) GetSlotDouble(slot int) float64 {
 // It is an error to call this if the slot does not contain an instance of a
 // foreign class.
 func (vm *VM) GetSlotForeign(slot int, i interface{}) {
-	_ = C.wrenGetSlotForeign(vm.vm, C.int(slot)) // ptr
+	ptr := C.wrenGetSlotForeign(vm.vm, C.int(slot)) // ptr
+	i = reflect.NewAt(reflect.TypeOf(i).Elem(), ptr).Interface()
 	// TODO: Implement return struct from ptr to i
 	// i = ptr
 }
