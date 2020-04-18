@@ -11,7 +11,7 @@
     </a>
 </p>
 <p align="center">
-    <b>Wrengo</b> is binding for <b>Wren</b> scripting language.
+    <b>Wrengo</b> is binding for <b><a href="http://wren.io/">Wren</a></b> scripting language.
 </p>
 
 ## ⚡️ Quickstart
@@ -101,7 +101,7 @@ this number is a terrible default, pull requests will be happily accepted.
 
 ## 📚 Similar/nearby projects
 
-- [go-wren](https://github.com/dradtke/go-wren) - doing same work as this package, but working with older version of Wren and it has more simplifications.
+- [go-wren](https://github.com/dradtke/go-wren) - it's based on nearly 0.1.0 Wren sources, when Wrengo based on 0.2.0 Wren release. It's doing same work as this package, but working with older version of Wren and it has more simplifications.
 - [tengo](https://github.com/d5/tengo) - Tengo is fast and secure because it's compiled/executed as bytecode on stack-based VM that's written in native Go.
 - [go-lua](https://github.com/Shopify/go-lua) - Port of the Lua 5.2 VM to pure Go.
 
