@@ -64,7 +64,7 @@ On <b>MacOS</b> you need Xcode or Command Line Tools for Xcode.
 | | fib(35) | fibt(35) |  Type  |
 | :--- |    ---: |     ---: |  :---: |
 | Go | `96ms` | `25ms` | Go (native) |
-| [**Wrengo**](https://github.com/Terisback/wrengo) | `34ms` | `29ms` | Wren VM on Go |
+| [**Wrengo**](https://github.com/Terisback/wrengo) | `34ms` | `29ms` | Wren VM |
 | [Tengo](https://github.com/d5/tengo) | `34ms` | `30ms` | VM on Go |
 | Lua | `2ms` | `25ms` | Lua (native) |
 | [go-lua](https://github.com/Shopify/go-lua) | `7ms` | `26ms` | Lua VM on Go |
@@ -90,7 +90,8 @@ _* See [here](https://github.com/Terisback/wrengobench) for commands/codes used_
 <b>Foreign Function Limits</b> Due to Go's inability to generate C-exported functions at runtime, the number of foreign methods able to be registered with the Wren VM through this package is limited
 to 256 for functions and 256 for classes. This number is completely arbitrary, though, and can be changed by modifying
 the directive at the bottom of wrengo.go and running "go generate". If you feel like
-this number is a terrible default, pull requests will be happily accepted.
+this number is a terrible default, pull requests will be happily accepted.  
+<b>Cast</b> types when receiving foreign class. I think there is a more “right” way to do this. Feel free to pull request.
 
 ## 👨🏻‍💻 Examples
 
