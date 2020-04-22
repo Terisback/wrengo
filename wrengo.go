@@ -297,11 +297,9 @@ func (vm *VM) GetSlotDouble(slot int) float64 {
 //
 // It is an error to call this if the slot does not contain an instance of a
 // foreign class.
-func (vm *VM) GetSlotForeign(slot int, i interface{}) {
+func (vm *VM) GetSlotForeign(slot int, i interface{}) interface{} {
 	ptr := C.wrenGetSlotForeign(vm.vm, C.int(slot)) // ptr
-	i = reflect.NewAt(reflect.TypeOf(i).Elem(), ptr).Interface()
-	// TODO: Implement return struct from ptr to i
-	// i = ptr
+	return reflect.NewAt(reflect.TypeOf(i), ptr).Elem().Interface()
 }
 
 // Reads a string from [slot].
@@ -407,7 +405,7 @@ func (vm *VM) AbortFiber(slot int) {
 	C.wrenAbortFiber(vm.vm, C.int(slot))
 }
 
-// Registers a foreign method with the virtual machine.
+// Registers a foreign method in main module with the virtual machine.
 func (vm *VM) BindForeignMethod(class string, isStatic bool, signature string, f func(*VM)) error {
 	ptr, err := registerFunc(signature, f)
 	if err != nil {
@@ -417,7 +415,7 @@ func (vm *VM) BindForeignMethod(class string, isStatic bool, signature string, f
 	return nil
 }
 
-// Registers a foreign class with the virtual machine.
+// Registers a foreign class in main module with the virtual machine.
 func (vm *VM) BindForeignClass(signature string, f func() interface{}) error {
 	ptr, err := registerClass(signature, func() {
 		newForeign(vm.vm, f())
@@ -441,8 +439,6 @@ func bindSignature(module, class string, isStatic bool, signature string) string
 	return sig.String()
 }
 
-// DON'T USE THIS FUNCTION - IT'S COPYPASTA FROM GO-WREN
-// AFTER CALLING THUS FUNCTION CAN BE UNPREDICTABLE CONSEQUENCES
 // newForeign allocates a new foreign object.
 //
 // This method should only be called from a foreign class allocation function.

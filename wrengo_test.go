@@ -1,7 +1,6 @@
 package wrengo
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -96,14 +95,13 @@ type God struct {
 // The constructor for a foreign type takes no arguments and returns
 // an interface{} value representing the new object.
 func NewGod() interface{} {
-	return &God{msg: "Do my bidding, %s!"}
+	return &God{msg: "What are you doing? "}
 }
 
 func GetGodsMessage(vm *VM) {
-	var god God
-	(*vm).GetSlotForeign(0, &god)
-	name := (*vm).GetSlotString(1)
-	(*vm).SetSlotString(0, fmt.Sprintf(god.msg, name))
+	god := vm.GetSlotForeign(0, God{}).(God)
+	name := vm.GetSlotString(1)
+	vm.SetSlotString(0, god.msg+name)
 }
 
 func TestForeign(t *testing.T) {
@@ -130,5 +128,5 @@ func TestForeign(t *testing.T) {
 
 	assert.NoError(t, vm.Interpret(DefaultModule, program))
 
-	assert.Equal(t, "Do my bidding, Damien!\n", out)
+	assert.Equal(t, "What are you doing? Damien\n", out)
 }
