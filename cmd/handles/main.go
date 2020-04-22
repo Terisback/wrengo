@@ -7,13 +7,7 @@ import (
 )
 
 func main() {
-	config := wrengo.NewConfiguration()
-	config.WriteFunc = wrengo.CallbackWrite
-	config.ErrorFunc = wrengo.CallbackError
-	vm := wrengo.NewVM(config)
-	defer vm.FreeVM()
-
-	err := vm.Interpret(wrengo.DefaultModule, `
+	program := `
 		class WrenMath {
 			static do_add(a, b) {
 				return a + b
@@ -28,11 +22,26 @@ func main() {
 				return a / b
 			}
 		}
-	`)
+	`
+
+	// New configuration for VM
+	config := wrengo.NewConfiguration()
+
+	// Adding callbacks
+	config.WriteFunc = wrengo.CallbackWrite
+	config.ErrorFunc = wrengo.CallbackError
+
+	// Creating new VM
+	vm := wrengo.NewVM(config)
+	defer vm.FreeVM()
+
+	// Interpret
+	err := vm.Interpret(wrengo.DefaultModule, program)
 	if err != nil {
 		panic("Something went wrong")
 	}
 
+	// HANDLES!!!!!!!!! YAAAAAAAAY
 	{
 		vm.EnsureSlots(3)
 		vm.GetVariable(wrengo.DefaultModule, "WrenMath", 0)
