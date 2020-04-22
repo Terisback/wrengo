@@ -31,10 +31,7 @@ func main() {
     vm := wrengo.NewVM(config)
     defer vm.FreeVM()
 
-    err := vm.Interpret("main", `System.print("Hello world!")`)
-    if err != nil {
-        fmt.Println(err)
-    }
+    vm.Interpret("main", `System.print("Hello world!")`)
 }
 ```
 
@@ -88,16 +85,139 @@ _* Results were rounded up_
 _* Tested on my Microsoft Sufrace 6 Pro_  
 _* See [here](https://github.com/Terisback/wrengobench) for commands/codes used_
 
-## 👨🏻‍💻 Examples
-
-A few examples are stored in the [cmd](https://github.com/Terisback/wrengo/tree/master/cmd) folder
-
 ## 👨‍🦽 Compromises
 
 <b>Foreign Function Limits</b> Due to Go's inability to generate C-exported functions at runtime, the number of foreign methods able to be registered with the Wren VM through this package is limited
 to 256 for functions and 256 for classes. This number is completely arbitrary, though, and can be changed by modifying
 the directive at the bottom of wrengo.go and running "go generate". If you feel like
 this number is a terrible default, pull requests will be happily accepted.
+
+## 👨🏻‍💻 Examples
+
+Simplified examples is listed below. *(Without error checking and import)*
+
+> Full examples are stored in the [cmd](https://github.com/Terisback/wrengo/tree/master/cmd) folder
+
+### Interpret
+
+```go
+func main() {
+	// New configuration for VM
+	config := wrengo.NewConfiguration()
+
+	// Adding callbacks
+	config.WriteFunc = wrengo.CallbackWrite
+	config.ErrorFunc = wrengo.CallbackError
+
+	// Creating new VM
+	vm := wrengo.NewVM(config)
+	defer vm.FreeVM()
+
+	// New console read buffer
+	reader := bufio.NewReader(os.Stdin)
+
+	fmt.Println("Ready! Press Ctrl+C for exit.")
+
+	// Interpret loop
+	for {
+		fmt.Print("> ")
+		text, _ := reader.ReadString('\n')
+		vm.Interpret("main", text+"\n")
+	}
+}
+```
+
+### Handles
+
+```go
+func main() {
+	program := `
+		class WrenMath {
+			static do_add(a, b) {
+				return a + b
+			}
+		}
+	`
+
+	config := wrengo.NewConfiguration()
+	config.WriteFunc = wrengo.CallbackWrite
+	config.ErrorFunc = wrengo.CallbackError
+	vm := wrengo.NewVM(config)
+	defer vm.FreeVM()
+
+	vm.Interpret(wrengo.DefaultModule, program)
+
+    // Make sure enough slots are allocated
+    vm.EnsureSlots(3)
+
+    // Getting class to slot 0
+    vm.GetVariable(wrengo.DefaultModule, "WrenMath", 0)
+
+    // Creating handle to do_add function
+    h := vm.NewCallHandle("do_add(_,_)")
+
+    // Setting call arguments
+	vm.SetSlotDouble(1, 9)
+    vm.SetSlotDouble(2, 3)
+
+    // Calling
+    h.Call()
+
+    // Print the result
+	fmt.Println(vm.GetSlotDouble(0))
+}
+```
+
+### Foreign
+
+```go
+type God struct { msg string }
+
+// The constructor for a foreign type takes no arguments and returns
+// an interface{} value representing the new object.
+func NewGod() interface{} {
+	return &God{msg: "What are you doing? %s"}
+}
+
+// Function to bind into Wren
+func GetGodsMessage(vm *wrengo.VM) {
+    // Getting foreign class
+    god := vm.GetSlotForeign(0, God{}).(God)
+
+    // Getting argument
+    name := vm.GetSlotString(1)
+
+    // Return result
+	vm.SetSlotString(0, fmt.Sprintf(god.msg, name))
+}
+
+func main() {
+	// Wren code
+	program := `
+			foreign class God {
+				construct new() {}
+				foreign getMessage(name)
+			}
+
+			var god = God.new()
+			System.print(god.getMessage("Silly boy"))
+		`
+
+	config := wrengo.NewConfiguration()
+	config.WriteFunc = wrengo.CallbackWrite
+	config.ErrorFunc = wrengo.CallbackError
+	vm := wrengo.NewVM(config)
+	defer vm.FreeVM()
+
+	// Bind God class
+	vm.BindForeignClass("God", NewGod)
+
+	// Bind God.getMessage()
+	vm.BindForeignMethod("God", false, "getMessage(_)", GetGodsMessage)
+
+	vm.Interpret(wrengo.DefaultModule, program)
+}
+```
 
 ## 📚 Similar/nearby projects
 
