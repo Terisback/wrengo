@@ -102,28 +102,28 @@ Simplified examples is listed below. *(Without error checking and import)*
 
 ```go
 func main() {
-	// New configuration for VM
-	config := wrengo.NewConfiguration()
+    // New configuration for VM
+    config := wrengo.NewConfiguration()
 
-	// Adding callbacks
-	config.WriteFunc = wrengo.CallbackWrite
-	config.ErrorFunc = wrengo.CallbackError
+    // Adding callbacks
+    config.WriteFunc = wrengo.CallbackWrite
+    config.ErrorFunc = wrengo.CallbackError
 
-	// Creating new VM
-	vm := wrengo.NewVM(config)
-	defer vm.FreeVM()
+    // Creating new VM
+    vm := wrengo.NewVM(config)
+    defer vm.FreeVM()
 
-	// New console read buffer
-	reader := bufio.NewReader(os.Stdin)
+    // New console read buffer
+    reader := bufio.NewReader(os.Stdin)
 
-	fmt.Println("Ready! Press Ctrl+C for exit.")
+    fmt.Println("Ready! Press Ctrl+C for exit.")
 
-	// Interpret loop
-	for {
-		fmt.Print("> ")
-		text, _ := reader.ReadString('\n')
-		vm.Interpret("main", text+"\n")
-	}
+    // Interpret loop
+    for {
+        fmt.Print("> ")
+        text, _ := reader.ReadString('\n')
+        vm.Interpret("main", text+"\n")
+    }
 }
 ```
 
@@ -131,21 +131,21 @@ func main() {
 
 ```go
 func main() {
-	program := `
-		class WrenMath {
-			static do_add(a, b) {
-				return a + b
-			}
-		}
-	`
+    program := `
+        class WrenMath {
+            static do_add(a, b) {
+                return a + b
+            }
+        }
+    `
 
-	config := wrengo.NewConfiguration()
-	config.WriteFunc = wrengo.CallbackWrite
-	config.ErrorFunc = wrengo.CallbackError
-	vm := wrengo.NewVM(config)
-	defer vm.FreeVM()
+    config := wrengo.NewConfiguration()
+    config.WriteFunc = wrengo.CallbackWrite
+    config.ErrorFunc = wrengo.CallbackError
+    vm := wrengo.NewVM(config)
+    defer vm.FreeVM()
 
-	vm.Interpret(wrengo.DefaultModule, program)
+    vm.Interpret(wrengo.DefaultModule, program)
 
     // Make sure enough slots are allocated
     vm.EnsureSlots(3)
@@ -157,14 +157,14 @@ func main() {
     h := vm.NewCallHandle("do_add(_,_)")
 
     // Setting call arguments
-	vm.SetSlotDouble(1, 9)
+    vm.SetSlotDouble(1, 9)
     vm.SetSlotDouble(2, 3)
 
     // Calling
     h.Call()
 
     // Print the result
-	fmt.Println(vm.GetSlotDouble(0))
+    fmt.Println(vm.GetSlotDouble(0))
 }
 ```
 
@@ -176,7 +176,7 @@ type God struct { msg string }
 // The constructor for a foreign type takes no arguments and returns
 // an interface{} value representing the new object.
 func NewGod() interface{} {
-	return &God{msg: "What are you doing? %s"}
+    return &God{msg: "What are you doing? %s"}
 }
 
 // Function to bind into Wren
@@ -188,34 +188,34 @@ func GetGodsMessage(vm *wrengo.VM) {
     name := vm.GetSlotString(1)
 
     // Return result
-	vm.SetSlotString(0, fmt.Sprintf(god.msg, name))
+    vm.SetSlotString(0, fmt.Sprintf(god.msg, name))
 }
 
 func main() {
-	// Wren code
-	program := `
-			foreign class God {
-				construct new() {}
-				foreign getMessage(name)
-			}
+    // Wren code
+    program := `
+        foreign class God {
+            construct new() {}
+            foreign getMessage(name)
+		}
 
-			var god = God.new()
-			System.print(god.getMessage("Silly boy"))
-		`
+        var god = God.new()
+        System.print(god.getMessage("Silly boy"))
+	`
 
-	config := wrengo.NewConfiguration()
-	config.WriteFunc = wrengo.CallbackWrite
-	config.ErrorFunc = wrengo.CallbackError
-	vm := wrengo.NewVM(config)
-	defer vm.FreeVM()
+    config := wrengo.NewConfiguration()
+    config.WriteFunc = wrengo.CallbackWrite
+    config.ErrorFunc = wrengo.CallbackError
+    vm := wrengo.NewVM(config)
+    defer vm.FreeVM()
 
-	// Bind God class
-	vm.BindForeignClass("God", NewGod)
+    // Bind God class
+    vm.BindForeignClass("God", NewGod)
 
-	// Bind God.getMessage()
-	vm.BindForeignMethod("God", false, "getMessage(_)", GetGodsMessage)
+    // Bind God.getMessage()
+    vm.BindForeignMethod("God", false, "getMessage(_)", GetGodsMessage)
 
-	vm.Interpret(wrengo.DefaultModule, program)
+    vm.Interpret(wrengo.DefaultModule, program)
 }
 ```
 
