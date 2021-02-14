@@ -14,6 +14,8 @@
     <b>Wrengo</b> is binding for <b><a href="http://wren.io/">Wren</a></b> scripting language.
 </p>
 
+> The package has not been updated for a long time, based on 0.2.0 Wren, and not compiles on Go version bigger than 1.14  
+> If anyone really needs updated package, open issue ^_^
 ## ⚡️ Quickstart
 
 ```go
